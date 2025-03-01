@@ -73,6 +73,19 @@ class MedicineReminderWorker(
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
+            val fullScreenIntent = Intent(context, StopReminderActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra("medicineId", medicineId)
+                putExtra("scheduleId", scheduleId)
+            }
+
+            val fullScreenPendingIntent = PendingIntent.getActivity(
+                context,
+                medicineId,
+                fullScreenIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
             val notification = NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_medicine_notification)
                 .setContentTitle("Time to take ${medicine.name}")
@@ -85,7 +98,8 @@ class MedicineReminderWorker(
                 .setCategory(NotificationCompat.CATEGORY_ALARM)
                 .setOngoing(true)
                 .setAutoCancel(false)
-                .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM))
+                .setFullScreenIntent(fullScreenPendingIntent, true)
+                .setSound(null) // Sound will be handled by AlarmService
                 .addAction(
                     R.drawable.ic_stop_alarm,
                     "Stop Alarm",

@@ -16,6 +16,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.remindme.service.AlarmService
 import androidx.compose.ui.graphics.Color
 import com.example.remindme.MainActivity
+import android.view.WindowManager
 
 class StopReminderActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -23,6 +24,13 @@ class StopReminderActivity : ComponentActivity() {
         
         val medicineId = intent.getIntExtra("medicineId", -1)
         val scheduleId = intent.getIntExtra("scheduleId", -1)
+        
+        window.addFlags(
+            WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
+            WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD or
+            WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+            WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+        )
         
         setContent {
             val viewModel: MedicineViewModel = viewModel()

@@ -16,7 +16,11 @@ import com.example.remindme.ui.MedicineViewModel
 import com.example.remindme.ui.MedicinesTab
 import com.example.remindme.ui.TimingsTab
 import com.example.remindme.ui.theme.RemindMeTheme
+import com.example.remindme.ui.PatientScreen
+import com.example.remindme.ui.AddPatientScreen
+import com.example.remindme.ui.PatientMedicineScheduleScreen
 
+@OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,40 +36,32 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             RemindMeTheme {
+                var currentScreen by remember { mutableStateOf("patients") }
                 val viewModel: MedicineViewModel = viewModel()
-                MainScreen(viewModel)
-            }
-        }
-    }
-}
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun MainScreen(viewModel: MedicineViewModel) {
-    var selectedTab by remember { mutableStateOf(0) }
-    val tabs = listOf("Medicines", "Timings")
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Remind Me") },
-            )
-        }
-    ) { padding ->
-        Column(modifier = Modifier.padding(padding)) {
-            TabRow(selectedTabIndex = selectedTab) {
-                tabs.forEachIndexed { index, title ->
-                    Tab(
-                        selected = selectedTab == index,
-                        onClick = { selectedTab = index },
-                        text = { Text(title) }
+                when (currentScreen) {
+                    "patients" -> PatientScreen(
+                        onNavigateToAddPatient = { currentScreen = "addPatient" },
+                        onPatientSelected = { patientId ->
+                            viewModel.setSelectedPatient(patientId)
+                            currentScreen = "medicines"
+                        }
+                    )
+                    "addPatient" -> AddPatientScreen(
+                        onNavigateBack = { currentScreen = "patients" }
+                    )
+                    "medicines" -> MedicinesTab(
+                        onNavigateBack = { currentScreen = "patients" },
+                        onNavigateToTimings = { currentScreen = "timings" },
+                        onNavigateToScheduleSummary = { currentScreen = "schedule_summary" }
+                    )
+                    "timings" -> TimingsTab(
+                        onNavigateBack = { currentScreen = "medicines" }
+                    )
+                    "schedule_summary" -> PatientMedicineScheduleScreen(
+                        onNavigateBack = { currentScreen = "medicines" }
                     )
                 }
-            }
-            
-            when (selectedTab) {
-                0 -> MedicinesTab(viewModel)
-                1 -> TimingsTab(viewModel)
             }
         }
     }

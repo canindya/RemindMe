@@ -8,7 +8,8 @@ data class Medicine(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     val name: String,
-    val illnessType: String
+    val illnessType: String,
+    val patientId: Int
 )
 
 @Entity(tableName = "medicine_schedules")

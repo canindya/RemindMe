@@ -7,12 +7,13 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
 @Database(
-    entities = [Medicine::class, MedicineSchedule::class, MedicineTaken::class],
-    version = 4
+    entities = [Medicine::class, MedicineSchedule::class, MedicineTaken::class, Patient::class],
+    version = 5
 )
 @TypeConverters(Converters::class)
 abstract class MedicineDatabase : RoomDatabase() {
     abstract fun medicineDao(): MedicineDao
+    abstract fun patientDao(): PatientDao
 
     companion object {
         @Volatile

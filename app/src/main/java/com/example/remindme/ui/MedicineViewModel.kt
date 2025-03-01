@@ -23,15 +23,25 @@ class MedicineViewModel(application: Application) : AndroidViewModel(application
     private val dao = database.medicineDao()
     private val workManager = WorkManager.getInstance(application)
 
-    val medicines = dao.getAllMedicines()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
+    private val _selectedPatientId = MutableStateFlow<Int?>(null)
+    val selectedPatientId = _selectedPatientId.asStateFlow()
+
+    val medicines = _selectedPatientId.flatMapLatest { patientId ->
+        if (patientId != null) {
+            dao.getMedicinesForPatient(patientId)
+        } else {
+            flowOf(emptyList())
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
 
     private val _selectedDay = MutableStateFlow(DayOfWeek.MONDAY)
     val selectedDay = _selectedDay.asStateFlow()
 
     val schedulesForSelectedDay = _selectedDay
         .flatMapLatest { day ->
-            dao.getSchedulesForDay(day.value)
+            dao.getSchedulesForDay(day.value).map { schedules ->
+                schedules.sortedBy { it.time }
+            }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
 
@@ -39,7 +49,8 @@ class MedicineViewModel(application: Application) : AndroidViewModel(application
     val takenMedicines = _takenMedicines.asStateFlow()
 
     init {
-        // Clear old taken medicines and observe today's taken medicines
+        _selectedDay.value = LocalDate.now().dayOfWeek
+        
         viewModelScope.launch {
             dao.clearOldTakenMedicines(LocalDate.now().minusDays(1))
         }
@@ -54,11 +65,24 @@ class MedicineViewModel(application: Application) : AndroidViewModel(application
 
     fun setSelectedDay(day: DayOfWeek) {
         _selectedDay.value = day
+        viewModelScope.launch {
+            _takenMedicines.value = dao.getTakenMedicinesForDateSync(LocalDate.now())
+        }
+    }
+
+    fun setSelectedPatient(patientId: Int) {
+        _selectedPatientId.value = patientId
     }
 
     fun addMedicine(name: String, illnessType: String) {
         viewModelScope.launch {
-            dao.insertMedicine(Medicine(name = name, illnessType = illnessType))
+            _selectedPatientId.value?.let { patientId ->
+                dao.insertMedicine(Medicine(
+                    name = name,
+                    illnessType = illnessType,
+                    patientId = patientId
+                ))
+            }
         }
     }
 
@@ -148,16 +172,16 @@ class MedicineViewModel(application: Application) : AndroidViewModel(application
     fun markMedicineTaken(medicineId: Int, scheduleId: Int) {
         viewModelScope.launch {
             try {
+                val currentDate = LocalDate.now()
                 val medicineTaken = MedicineTaken(
                     medicineId = medicineId,
                     scheduleId = scheduleId,
-                    date = LocalDate.now()
+                    date = currentDate
                 )
                 dao.markMedicineTaken(medicineTaken)
                 
-                // Instead of collecting, just get the current value
-                val taken = dao.getTakenMedicinesForDateSync(LocalDate.now())
-                _takenMedicines.value = taken
+                // Update the UI with latest taken medicines
+                _takenMedicines.value = dao.getTakenMedicinesForDateSync(currentDate)
                 
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -184,5 +208,13 @@ class MedicineViewModel(application: Application) : AndroidViewModel(application
             // Cancel the specific reminder
             workManager.cancelUniqueWork("medicine_${schedule.medicineId}_${schedule.time}_${schedule.dayOfWeek}")
         }
+    }
+
+    fun getSchedulesForMedicine(medicineId: Int): Flow<List<MedicineSchedule>> {
+        return dao.getSchedulesForMedicine(medicineId)
+    }
+
+    fun getAllSchedulesForPatient(patientId: Int): Flow<List<MedicineSchedule>> {
+        return dao.getAllSchedulesForPatient(patientId)
     }
 } 

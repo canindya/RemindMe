@@ -16,5 +16,5 @@ data class MedicineTaken(
     val id: Int = 0,
     val medicineId: Int,
     val scheduleId: Int,
-    val date: LocalDate = LocalDate.now()
+    val date: LocalDate
 ) 

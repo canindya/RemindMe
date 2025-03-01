@@ -58,4 +58,17 @@ interface MedicineDao {
         ORDER BY id DESC
     """)
     suspend fun getTakenMedicinesForDateSync(date: LocalDate): List<MedicineTaken>
+
+    @Query("SELECT * FROM medicines WHERE patientId = :patientId")
+    fun getMedicinesForPatient(patientId: Int): Flow<List<Medicine>>
+
+    @Query("SELECT * FROM medicine_schedules WHERE medicineId = :medicineId")
+    fun getSchedulesForMedicine(medicineId: Int): Flow<List<MedicineSchedule>>
+
+    @Query("""
+        SELECT ms.* FROM medicine_schedules ms
+        INNER JOIN medicines m ON m.id = ms.medicineId
+        WHERE m.patientId = :patientId
+    """)
+    fun getAllSchedulesForPatient(patientId: Int): Flow<List<MedicineSchedule>>
 } 

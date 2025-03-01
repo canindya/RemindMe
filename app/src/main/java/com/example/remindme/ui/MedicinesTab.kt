@@ -15,16 +15,57 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import com.example.remindme.data.Medicine
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.unit.IntOffset
+import com.example.remindme.data.MedicineSuggestion
+import com.example.remindme.util.MedicineSuggestions
+import androidx.compose.foundation.lazy.items
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MedicinesTab(viewModel: MedicineViewModel) {
+fun MedicinesTab(
+    onNavigateBack: () -> Unit,
+    onNavigateToTimings: () -> Unit,
+    onNavigateToScheduleSummary: () -> Unit
+) {
+    val viewModel: MedicineViewModel = viewModel()
+    val patientViewModel: PatientViewModel = viewModel()
+    val selectedPatientId by viewModel.selectedPatientId.collectAsState()
+    val patients by patientViewModel.patients.collectAsState()
+    
     var medicineName by remember { mutableStateOf("") }
     var illnessType by remember { mutableStateOf("") }
     var showConfirmDialog by remember { mutableStateOf(false) }
     var medicineToDelete: Medicine? by remember { mutableStateOf(null) }
     
+    // Add these states for medicine suggestions
+    var showSuggestions by remember { mutableStateOf(false) }
+    var suggestions by remember { mutableStateOf<List<MedicineSuggestion>>(emptyList()) }
+    
     val medicines by viewModel.medicines.collectAsState()
+    val selectedPatient = patients.find { it.id == selectedPatientId }
 
     if (showConfirmDialog) {
         ConfirmationDialog(
@@ -48,84 +89,248 @@ fun MedicinesTab(viewModel: MedicineViewModel) {
         )
     }
 
-    Column(modifier = Modifier.padding(16.dp)) {
-        TextField(
-            value = medicineName,
-            onValueChange = { medicineName = it },
-            label = { Text("Medicine Name") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        TextField(
-            value = illnessType,
-            onValueChange = { illnessType = it },
-            label = { Text("Illness Type") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        Button(
-            onClick = {
-                if (medicineName.isNotBlank() && illnessType.isNotBlank()) {
-                    viewModel.addMedicine(medicineName, illnessType)
-                    medicineName = ""
-                    illnessType = ""
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Medicines") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Default.ArrowBack, "Go back")
+                    }
+                },
+                actions = {
+                    Button(onClick = onNavigateToTimings) {
+                        Text("Timings")
+                    }
+                    Button(
+                        onClick = onNavigateToScheduleSummary,
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    ) {
+                        Text("View Summary")
+                    }
                 }
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Add Medicine")
+            )
         }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        Button(
-            onClick = { showConfirmDialog = true },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color.Red,
-                contentColor = Color.White
-            ),
-            modifier = Modifier.fillMaxWidth()
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp)
         ) {
-            Text("Clear All")
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        LazyColumn {
-            items(medicines) { medicine ->
+            // Show selected patient info
+            selectedPatient?.let { patient ->
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 4.dp)
+                        .padding(bottom = 16.dp)
                 ) {
-                    Row(
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Patient: ${patient.name}",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            text = "Age: ${patient.age} | Sex: ${patient.sex}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            }
+
+            Column(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = medicineName,
+                    onValueChange = { 
+                        medicineName = it
+                        suggestions = MedicineSuggestions.searchMedicines(it)
+                        showSuggestions = true
+                    },
+                    label = { Text("Medicine Name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        imeAction = ImeAction.Next
+                    ),
+                    trailingIcon = {
+                        if (medicineName.isNotEmpty()) {
+                            IconButton(onClick = { 
+                                medicineName = ""
+                                suggestions = emptyList()
+                                showSuggestions = false
+                            }) {
+                                Icon(Icons.Default.Clear, "Clear")
+                            }
+                        }
+                    }
+                )
+                
+                AnimatedVisibility(
+                    visible = showSuggestions && suggestions.isNotEmpty(),
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
+                    Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(top = 4.dp)
+                            .heightIn(max = 200.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Medicine: ${medicine.name}")
-                            Text("Illness: ${medicine.illnessType}")
-                        }
-                        
-                        IconButton(
-                            onClick = { medicineToDelete = medicine }
+                        LazyColumn(
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Delete medicine",
-                                tint = Color.Red
-                            )
+                            items(suggestions) { suggestion ->
+                                Surface(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            medicineName = suggestion.name
+                                            illnessType = suggestion.commonUses
+                                            showSuggestions = false
+                                            suggestions = emptyList()
+                                        },
+                                    color = MaterialTheme.colorScheme.surface
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp)
+                                    ) {
+                                        Text(
+                                            text = suggestion.name,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = suggestion.commonUses,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    Divider()
+                                }
+                            }
                         }
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            TextField(
+                value = illnessType,
+                onValueChange = { illnessType = it },
+                label = { Text("Illness Type") },
+                modifier = Modifier.fillMaxWidth()
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Button(
+                onClick = {
+                    if (medicineName.isNotBlank() && illnessType.isNotBlank()) {
+                        viewModel.addMedicine(medicineName, illnessType)
+                        medicineName = ""
+                        illnessType = ""
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Add Medicine")
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Button(
+                onClick = { showConfirmDialog = true },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Red,
+                    contentColor = Color.White
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Clear All")
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            LazyColumn {
+                val groupedMedicines = medicines.groupByIllness()
+                
+                groupedMedicines.forEach { (illnessType, medicinesInGroup) ->
+                    item {
+                        Text(
+                            text = illnessType,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                    }
+                    
+                    items(medicinesInGroup) { medicine ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 8.dp, end = 0.dp, bottom = 8.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = medicine.name,
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "Added for: ${medicine.illnessType}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                
+                                IconButton(
+                                    onClick = { medicineToDelete = medicine }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = "Delete medicine",
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Add a divider between groups
+                    if (illnessType != groupedMedicines.keys.last()) {
+                        item {
+                            Divider(
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant
+                            )
+                        }
+                    }
+                }
+                
+                // Add some bottom padding
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+            }
         }
     }
+}
+
+private fun List<Medicine>.groupByIllness(): Map<String, List<Medicine>> {
+    return groupBy { it.illnessType }
 } 
