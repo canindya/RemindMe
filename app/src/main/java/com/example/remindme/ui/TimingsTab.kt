@@ -62,63 +62,18 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.material3.CardDefaults
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TimingsTab(
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    viewModel: MedicineViewModel = viewModel()
 ) {
-    val viewModel: MedicineViewModel = viewModel()
-    var selectedMedicineId by remember { mutableStateOf<Int?>(null) }
-    var showTimePicker by remember { mutableStateOf(false) }
-    var selectedTime by remember { mutableStateOf(LocalTime.now()) }
-    var expanded by remember { mutableStateOf(false) }
-    var dosageExpanded by remember { mutableStateOf(false) }
-    var selectedDosage by remember { mutableStateOf("FULL") }
-    var applyToAllDays by remember { mutableStateOf(false) }
-    var showConfirmDialog by remember { mutableStateOf(false) }
-    var scheduleToDelete: MedicineSchedule? by remember { mutableStateOf(null) }
-    
-    val medicines by viewModel.medicines.collectAsState()
     val selectedDay by viewModel.selectedDay.collectAsState()
     val schedules by viewModel.schedulesForSelectedDay.collectAsState()
     val takenMedicines by viewModel.takenMedicines.collectAsState()
-
-    val dosageOptions = listOf("FULL", "HALF", "QUARTER")
-
-    // Time Picker Dialog
-    if (showTimePicker) {
-        TimePickerDialog(
-            onDismiss = { showTimePicker = false },
-            onConfirm = { hour, minute ->
-                selectedTime = LocalTime.of(hour, minute)
-                showTimePicker = false
-            }
-        )
-    }
-
-    if (showConfirmDialog) {
-        ConfirmationDialog(
-            title = "Clear Schedules",
-            message = "This will delete all medicine schedules. This action cannot be undone. Are you sure?",
-            onConfirm = { viewModel.clearAllSchedules() },
-            onDismiss = { showConfirmDialog = false }
-        )
-    }
-
-    // Show delete confirmation dialog
-    scheduleToDelete?.let { schedule ->
-        val medicine = medicines.find { it.id == schedule.medicineId }
-        ConfirmationDialog(
-            title = "Delete Schedule",
-            message = "This will delete the schedule for '${medicine?.name}' at ${schedule.time}. Are you sure?",
-            onConfirm = {
-                viewModel.deleteSchedule(schedule)
-                scheduleToDelete = null
-            },
-            onDismiss = { scheduleToDelete = null }
-        )
-    }
 
     Scaffold(
         topBar = {
@@ -126,249 +81,156 @@ fun TimingsTab(
                 title = { Text("Timings") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, "Go back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
         }
-    ) { padding ->
+    ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp)
+                .padding(paddingValues)
+                .padding(top = 32.dp)  // Add more padding to move the days of the week down
         ) {
-            // Days of week tabs
-            ScrollableTabRow(
-                selectedTabIndex = selectedDay.ordinal,
-                modifier = Modifier.fillMaxWidth()
+            // Day selector
+            DaySelector(
+                selectedDay = selectedDay,
+                onDaySelected = { viewModel.setSelectedDay(it) }
+            )
+
+            // Schedules list
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
             ) {
-                DayOfWeek.values().forEach { day ->
-                    Tab(
-                        selected = selectedDay == day,
-                        onClick = { viewModel.setSelectedDay(day) },
-                        text = { 
-                            Text(day.getDisplayName(TextStyle.SHORT, Locale.getDefault()))
+                items(schedules) { schedule ->
+                    val isTaken = takenMedicines.any { 
+                        it.medicineId == schedule.medicineId && 
+                        it.scheduleId == schedule.id 
+                    }
+
+                    ScheduleItem(
+                        schedule = schedule,
+                        isTaken = isTaken,
+                        onMarkTaken = { 
+                            if (!isTaken) {
+                                viewModel.markMedicineTaken(schedule.medicineId, schedule.id)
+                            }
                         }
                     )
                 }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Medicine selection
-            ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = it }
-            ) {
-                TextField(
-                    value = medicines.find { it.id == selectedMedicineId }?.name ?: "",
-                    onValueChange = { },
-                    readOnly = true,
-                    label = { Text("Select Medicine") },
-                    modifier = Modifier.menuAnchor().fillMaxWidth()
-                )
-
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
-                    medicines.forEach { medicine ->
-                        DropdownMenuItem(
-                            text = { Text(medicine.name) },
-                            onClick = {
-                                selectedMedicineId = medicine.id
-                                expanded = false
-                            }
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Time selection
-            OutlinedButton(
-                onClick = { showTimePicker = true },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(selectedTime.format(DateTimeFormatter.ofPattern("HH:mm")))
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Dosage selection
-            ExposedDropdownMenuBox(
-                expanded = dosageExpanded,
-                onExpandedChange = { dosageExpanded = it }
-            ) {
-                TextField(
-                    value = selectedDosage,
-                    onValueChange = { },
-                    readOnly = true,
-                    label = { Text("Select Dosage") },
-                    modifier = Modifier.menuAnchor().fillMaxWidth()
-                )
-
-                ExposedDropdownMenu(
-                    expanded = dosageExpanded,
-                    onDismissRequest = { dosageExpanded = false }
-                ) {
-                    dosageOptions.forEach { dosage ->
-                        DropdownMenuItem(
-                            text = { Text(dosage) },
-                            onClick = {
-                                selectedDosage = dosage
-                                dosageExpanded = false
-                            }
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Add checkbox before the Add Schedule button
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Checkbox(
-                    checked = applyToAllDays,
-                    onCheckedChange = { applyToAllDays = it }
-                )
-                Text(
-                    text = "Same schedule for all days",
-                    modifier = Modifier.padding(start = 8.dp)
-                )
-            }
-
-            Button(
-                onClick = {
-                    if (selectedMedicineId != null) {
-                        if (applyToAllDays) {
-                            // Add schedule for all days
-                            DayOfWeek.values().forEach { day ->
-                                viewModel.addSchedule(
-                                    selectedMedicineId!!,
-                                    day,
-                                    selectedTime.format(DateTimeFormatter.ofPattern("HH:mm")),
-                                    selectedDosage
-                                )
-                            }
-                        } else {
-                            // Add schedule for selected day only
-                            viewModel.addSchedule(
-                                selectedMedicineId!!,
-                                selectedDay,
-                                selectedTime.format(DateTimeFormatter.ofPattern("HH:mm")),
-                                selectedDosage
-                            )
-                        }
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Add Schedule")
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Display schedules for selected day
-            LazyColumn {
-                items(schedules) { schedule ->
-                    val medicine = medicines.find { it.id == schedule.medicineId }
-                    if (medicine != null) {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text("Medicine: ${medicine.name}")
-                                    Text("Time: ${schedule.time}")
-                                    Text("Dosage: ${schedule.dosage}")
-                                }
-                                
-                                val currentDate = LocalDate.now()
-                                val currentDayOfWeek = currentDate.dayOfWeek
-                                val isTaken = if (selectedDay == currentDayOfWeek) {
-                                    // Only check taken status if we're viewing today's schedule
-                                    takenMedicines.any { taken -> 
-                                        taken.medicineId == medicine.id && 
-                                        taken.scheduleId == schedule.id && 
-                                        taken.date == currentDate
-                                    }
-                                } else {
-                                    false  // If not today's schedule, always show as not taken
-                                }
-                                
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.ic_medicine_alarm),
-                                        contentDescription = "Reminder set",
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                    
-                                    Text(
-                                        text = if (selectedDay == currentDayOfWeek) {
-                                            if (isTaken) "Taken" else "Due"
-                                        } else {
-                                            if (selectedDay.value < currentDayOfWeek.value) "Past" else "Upcoming"
-                                        },
-                                        color = when {
-                                            selectedDay != currentDayOfWeek -> MaterialTheme.colorScheme.onSurfaceVariant
-                                            isTaken -> Color.Green
-                                            else -> Color.Red
-                                        },
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        modifier = Modifier.padding(horizontal = 8.dp)
-                                    )
-                                }
-                                
-                                IconButton(
-                                    onClick = { scheduleToDelete = schedule }
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Delete,
-                                        contentDescription = "Delete schedule",
-                                        tint = Color.Red
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Button(
-                onClick = { showConfirmDialog = true },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Red,
-                    contentColor = Color.White
-                ),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Clear All Schedules")
             }
         }
     }
 }
 
+@Composable
+fun ScheduleItem(
+    schedule: MedicineSchedule,
+    isTaken: Boolean,
+    onMarkTaken: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = schedule.time,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = "Dosage: ${schedule.dosage}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            if (isTaken) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = "Taken",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .size(32.dp)
+                        .padding(4.dp)
+                )
+            } else {
+                Button(
+                    onClick = onMarkTaken,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("Mark as Taken")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DaySelector(
+    selectedDay: DayOfWeek,
+    onDaySelected: (DayOfWeek) -> Unit
+) {
+    val days = DayOfWeek.values()
+    
+    LazyRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly
+    ) {
+        items(days) { day ->
+            DayButton(
+                day = day,
+                isSelected = day == selectedDay,
+                onClick = { onDaySelected(day) }
+            )
+        }
+    }
+}
+
+@Composable
+fun DayButton(
+    day: DayOfWeek,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val currentDay = LocalDate.now().dayOfWeek
+    val buttonColor = if (day == currentDay) {
+        Color(0xFFFFA500) // Orange color for the current day
+    } else if (isSelected) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.secondary
+    }
+
+    Button(
+        onClick = onClick,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = buttonColor
+        ),
+        modifier = Modifier.padding(horizontal = 4.dp)
+    ) {
+        Text(
+            text = day.name.take(3),
+            style = MaterialTheme.typography.bodyMedium
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TimePickerDialog(
     onDismiss: () -> Unit,

@@ -71,4 +71,10 @@ interface MedicineDao {
         WHERE m.patientId = :patientId
     """)
     fun getAllSchedulesForPatient(patientId: Int): Flow<List<MedicineSchedule>>
+
+    @Query("SELECT * FROM medicine_schedules")
+    suspend fun getAllSchedules(): List<MedicineSchedule>
+
+    @Query("SELECT * FROM patients")
+    fun getAllPatients(): Flow<List<Patient>>
 } 

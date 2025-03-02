@@ -11,12 +11,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import com.example.remindme.ui.components.ConfirmationDialog
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.List
 import com.example.remindme.data.Medicine
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -36,12 +38,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.foundation.clickable
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.unit.IntOffset
 import com.example.remindme.data.MedicineSuggestion
 import com.example.remindme.util.MedicineSuggestions
-import androidx.compose.foundation.lazy.items
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,6 +64,13 @@ fun MedicinesTab(
     
     val medicines by viewModel.medicines.collectAsState()
     val selectedPatient = patients.find { it.id == selectedPatientId }
+
+    // Add this state
+    var isAddSectionExpanded by remember { mutableStateOf(false) }
+
+    // Add these states at the top with other states
+    var selectedMedicine by remember { mutableStateOf<Medicine?>(null) }
+    var isDropdownExpanded by remember { mutableStateOf(false) }
 
     if (showConfirmDialog) {
         ConfirmationDialog(
@@ -99,14 +104,16 @@ fun MedicinesTab(
                     }
                 },
                 actions = {
-                    Button(onClick = onNavigateToTimings) {
-                        Text("Timings")
+                    // Add expand/collapse button
+                    IconButton(onClick = { isAddSectionExpanded = !isAddSectionExpanded }) {
+                        Icon(
+                            if (isAddSectionExpanded) Icons.Default.KeyboardArrowUp 
+                            else Icons.Default.KeyboardArrowDown,
+                            "Toggle add section"
+                        )
                     }
-                    Button(
-                        onClick = onNavigateToScheduleSummary,
-                        modifier = Modifier.padding(horizontal = 8.dp)
-                    ) {
-                        Text("View Summary")
+                    IconButton(onClick = onNavigateToScheduleSummary) {
+                        Icon(Icons.Default.List, "View schedule")
                     }
                 }
             )
@@ -139,106 +146,189 @@ fun MedicinesTab(
             }
 
             Column(modifier = Modifier.fillMaxWidth()) {
-                OutlinedTextField(
-                    value = medicineName,
-                    onValueChange = { 
-                        medicineName = it
-                        suggestions = MedicineSuggestions.searchMedicines(it)
-                        showSuggestions = true
-                    },
-                    label = { Text("Medicine Name") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        imeAction = ImeAction.Next
-                    ),
-                    trailingIcon = {
-                        if (medicineName.isNotEmpty()) {
-                            IconButton(onClick = { 
-                                medicineName = ""
-                                suggestions = emptyList()
-                                showSuggestions = false
-                            }) {
-                                Icon(Icons.Default.Clear, "Clear")
-                            }
-                        }
-                    }
-                )
-                
-                AnimatedVisibility(
-                    visible = showSuggestions && suggestions.isNotEmpty(),
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + shrinkVertically()
-                ) {
+                AnimatedVisibility(visible = isAddSectionExpanded) {
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 4.dp)
-                            .heightIn(max = 200.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                            .padding(16.dp)
                     ) {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxWidth()
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
                         ) {
-                            items(suggestions) { suggestion ->
-                                Surface(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            medicineName = suggestion.name
-                                            illnessType = suggestion.commonUses
-                                            showSuggestions = false
-                                            suggestions = emptyList()
-                                        },
-                                    color = MaterialTheme.colorScheme.surface
+                            // Add a dropdown to select existing medicine
+                            if (medicines.isNotEmpty()) {
+                                ExposedDropdownMenuBox(
+                                    expanded = isDropdownExpanded,
+                                    onExpandedChange = { isDropdownExpanded = it },
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Column(
+                                    TextField(
+                                        value = selectedMedicine?.name ?: "Select Medicine",
+                                        onValueChange = { },
+                                        readOnly = true,
+                                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(isDropdownExpanded) },
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(16.dp)
+                                            .menuAnchor()
+                                    )
+
+                                    ExposedDropdownMenu(
+                                        expanded = isDropdownExpanded,
+                                        onDismissRequest = { isDropdownExpanded = false }
                                     ) {
-                                        Text(
-                                            text = suggestion.name,
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(
-                                            text = suggestion.commonUses,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
+                                        medicines.forEach { medicine ->
+                                            DropdownMenuItem(
+                                                text = { 
+                                                    Column {
+                                                        Text(medicine.name)
+                                                        Text(
+                                                            text = "For: ${medicine.illnessType}",
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                },
+                                                onClick = {
+                                                    selectedMedicine = medicine
+                                                    isDropdownExpanded = false
+                                                    // Clear the new medicine fields when selecting existing medicine
+                                                    medicineName = ""
+                                                    illnessType = ""
+                                                }
+                                            )
+                                        }
                                     }
-                                    Divider()
                                 }
+
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                // Add a clear selection button if a medicine is selected
+                                if (selectedMedicine != null) {
+                                    TextButton(
+                                        onClick = { selectedMedicine = null },
+                                        modifier = Modifier.align(Alignment.End)
+                                    ) {
+                                        Text("Clear Selection")
+                                    }
+                                }
+                            }
+
+                            // Update the "Or Add New Medicine" section to be conditional
+                            if (selectedMedicine == null) {
+                                Text(
+                                    "Add New Medicine",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    modifier = Modifier.padding(vertical = 8.dp)
+                                )
+
+                                // Medicine name input with suggestions
+                                TextField(
+                                    value = medicineName,
+                                    onValueChange = { name ->
+                                        medicineName = name
+                                        suggestions = if (name.length >= 2) {
+                                            MedicineSuggestions.searchMedicines(name)
+                                        } else {
+                                            emptyList()
+                                        }
+                                        showSuggestions = suggestions.isNotEmpty()
+                                    },
+                                    label = { Text("Medicine Name") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    trailingIcon = {
+                                        if (medicineName.isNotEmpty()) {
+                                            IconButton(onClick = { medicineName = "" }) {
+                                                Icon(Icons.Default.Clear, "Clear text")
+                                            }
+                                        }
+                                    }
+                                )
+
+                                // Show suggestions if any
+                                if (showSuggestions) {
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .heightIn(max = 200.dp)
+                                    ) {
+                                        LazyColumn {
+                                            items(suggestions) { suggestion ->
+                                                Column(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .clickable {
+                                                            medicineName = suggestion.name
+                                                            illnessType = suggestion.commonUses
+                                                            showSuggestions = false
+                                                        }
+                                                        .padding(16.dp)
+                                                ) {
+                                                    Text(suggestion.name)
+                                                    Text(
+                                                        suggestion.commonUses,
+                                                        style = MaterialTheme.typography.bodySmall
+                                                    )
+                                                }
+                                                Divider()
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                // Illness type input
+                                TextField(
+                                    value = illnessType,
+                                    onValueChange = { illnessType = it },
+                                    label = { Text("Illness Type") },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            // Add medicine button
+                            Button(
+                                onClick = {
+                                    if (selectedMedicine == null) {
+                                        if (medicineName.isNotBlank() && illnessType.isNotBlank()) {
+                                            viewModel.addMedicine(medicineName, illnessType)
+                                            medicineName = ""
+                                            illnessType = ""
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = selectedMedicine == null && (medicineName.isNotBlank() && illnessType.isNotBlank())
+                            ) {
+                                Text("Add Medicine")
+                            }
+
+                            // Update the Add Timing button
+                            Button(
+                                onClick = {
+                                    if (selectedMedicine != null) {
+                                        viewModel.setSelectedMedicine(selectedMedicine!!.id)
+                                    } else if (medicineName.isNotBlank() && illnessType.isNotBlank()) {
+                                        // First add the new medicine
+                                        viewModel.addMedicine(medicineName, illnessType)
+                                        // The medicine ID will be handled in the ViewModel
+                                    }
+                                    onNavigateToTimings()
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp),
+                                enabled = selectedMedicine != null || (medicineName.isNotBlank() && illnessType.isNotBlank())
+                            ) {
+                                Text(if (selectedMedicine != null) "Add Schedule for ${selectedMedicine!!.name}" else "Add Schedule for New Medicine")
                             }
                         }
                     }
                 }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            TextField(
-                value = illnessType,
-                onValueChange = { illnessType = it },
-                label = { Text("Illness Type") },
-                modifier = Modifier.fillMaxWidth()
-            )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Button(
-                onClick = {
-                    if (medicineName.isNotBlank() && illnessType.isNotBlank()) {
-                        viewModel.addMedicine(medicineName, illnessType)
-                        medicineName = ""
-                        illnessType = ""
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Add Medicine")
             }
             
             Spacer(modifier = Modifier.height(16.dp))

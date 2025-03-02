@@ -8,9 +8,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.remindme.ui.MedicineViewModel
 import com.example.remindme.ui.MedicinesTab
@@ -44,7 +48,7 @@ class MainActivity : ComponentActivity() {
                         onNavigateToAddPatient = { currentScreen = "addPatient" },
                         onPatientSelected = { patientId ->
                             viewModel.setSelectedPatient(patientId)
-                            currentScreen = "medicines"
+                            currentScreen = "timings"
                         }
                     )
                     "addPatient" -> AddPatientScreen(

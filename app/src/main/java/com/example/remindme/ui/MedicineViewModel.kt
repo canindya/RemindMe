@@ -17,6 +17,14 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import java.time.LocalDate
+import androidx.work.Constraints
+import androidx.work.NetworkType
+import androidx.work.BackoffPolicy
+import androidx.work.PeriodicWorkRequest
+import androidx.work.WorkRequest
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.ExistingWorkPolicy
+import androidx.work.WorkInfo
 
 class MedicineViewModel(application: Application) : AndroidViewModel(application) {
     private val database = MedicineDatabase.getDatabase(application)
@@ -25,6 +33,9 @@ class MedicineViewModel(application: Application) : AndroidViewModel(application
 
     private val _selectedPatientId = MutableStateFlow<Int?>(null)
     val selectedPatientId = _selectedPatientId.asStateFlow()
+
+    // Add patients property
+    val patients: Flow<List<Patient>> = dao.getAllPatients()
 
     val medicines = _selectedPatientId.flatMapLatest { patientId ->
         if (patientId != null) {
@@ -47,6 +58,9 @@ class MedicineViewModel(application: Application) : AndroidViewModel(application
 
     private val _takenMedicines = MutableStateFlow<List<MedicineTaken>>(emptyList())
     val takenMedicines = _takenMedicines.asStateFlow()
+
+    private val _selectedMedicineId = MutableStateFlow(0)
+    val selectedMedicineId = _selectedMedicineId.asStateFlow()
 
     init {
         _selectedDay.value = LocalDate.now().dayOfWeek
@@ -76,13 +90,15 @@ class MedicineViewModel(application: Application) : AndroidViewModel(application
 
     fun addMedicine(name: String, illnessType: String) {
         viewModelScope.launch {
-            _selectedPatientId.value?.let { patientId ->
-                dao.insertMedicine(Medicine(
+            val medicineId = dao.insertMedicine(
+                Medicine(
                     name = name,
                     illnessType = illnessType,
-                    patientId = patientId
-                ))
-            }
+                    patientId = selectedPatientId.value ?: return@launch
+                )
+            )
+            // Set the newly added medicine as selected
+            _selectedMedicineId.value = medicineId.toInt()
         }
     }
 
@@ -120,36 +136,77 @@ class MedicineViewModel(application: Application) : AndroidViewModel(application
             .putInt("scheduleId", scheduleId)
             .build()
 
-        val currentDate = LocalDateTime.now()
-        val scheduledTime = LocalDateTime.of(
-            currentDate.toLocalDate(),
+        val currentDateTime = LocalDateTime.now()
+        var targetDateTime = LocalDateTime.of(
+            currentDateTime.toLocalDate(),
             time
         )
 
-        var initialDelay = Duration.between(currentDate, scheduledTime)
-        if (initialDelay.isNegative) {
-            initialDelay = initialDelay.plusDays(1)
+        // If the time has already passed today, schedule for tomorrow
+        if (targetDateTime.isBefore(currentDateTime)) {
+            targetDateTime = targetDateTime.plusDays(1)
         }
 
-        val workRequest = if (dayOfWeek != null) {
-            PeriodicWorkRequestBuilder<MedicineReminderWorker>(7, TimeUnit.DAYS)
-                .setInputData(data)
-                .setInitialDelay(initialDelay.toMinutes(), TimeUnit.MINUTES)
-                .addTag("medicine_$medicineId")
-                .build()
-        } else {
-            PeriodicWorkRequestBuilder<MedicineReminderWorker>(1, TimeUnit.DAYS)
-                .setInputData(data)
-                .setInitialDelay(initialDelay.toMinutes(), TimeUnit.MINUTES)
-                .addTag("medicine_$medicineId")
-                .build()
+        // If dayOfWeek is specified, adjust the date to the next occurrence of that day
+        if (dayOfWeek != null) {
+            while (targetDateTime.dayOfWeek != dayOfWeek) {
+                targetDateTime = targetDateTime.plusDays(1)
+            }
         }
 
-        workManager.enqueueUniquePeriodicWork(
-            "medicine_${medicineId}_${time}_${dayOfWeek?.value ?: "daily"}",
-            ExistingPeriodicWorkPolicy.REPLACE,
-            workRequest
+        val initialDelay = Duration.between(currentDateTime, targetDateTime)
+
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.NOT_REQUIRED)
+            .setRequiresBatteryNotLow(false)
+            .setRequiresDeviceIdle(false)
+            .setRequiresCharging(false)
+            .build()
+
+        // Create a one-time work request for precise timing
+        val oneTimeWorkRequest = OneTimeWorkRequestBuilder<MedicineReminderWorker>()
+            .setInputData(data)
+            .setInitialDelay(initialDelay.toMinutes(), TimeUnit.MINUTES)
+            .setConstraints(constraints)
+            .addTag("medicine_$medicineId")
+            .addTag("medicine_reminder")
+            .build()
+
+        // Schedule the one-time work
+        workManager.enqueueUniqueWork(
+            "medicine_${medicineId}_${time}_${dayOfWeek?.value ?: "daily"}_${System.currentTimeMillis()}",
+            ExistingWorkPolicy.REPLACE,
+            oneTimeWorkRequest
         )
+
+        // Schedule the next reminder after this one completes
+        workManager.getWorkInfoByIdLiveData(oneTimeWorkRequest.id)
+            .observeForever { workInfo ->
+                if (workInfo?.state == WorkInfo.State.SUCCEEDED) {
+                    // Schedule next reminder
+                    val nextTargetDateTime = if (dayOfWeek != null) {
+                        targetDateTime.plusWeeks(1)
+                    } else {
+                        targetDateTime.plusDays(1)
+                    }
+                    
+                    val nextDelay = Duration.between(LocalDateTime.now(), nextTargetDateTime)
+                    
+                    val nextWorkRequest = OneTimeWorkRequestBuilder<MedicineReminderWorker>()
+                        .setInputData(data)
+                        .setInitialDelay(nextDelay.toMinutes(), TimeUnit.MINUTES)
+                        .setConstraints(constraints)
+                        .addTag("medicine_$medicineId")
+                        .addTag("medicine_reminder")
+                        .build()
+
+                    workManager.enqueueUniqueWork(
+                        "medicine_${medicineId}_${time}_${dayOfWeek?.value ?: "daily"}_${System.currentTimeMillis()}",
+                        ExistingWorkPolicy.REPLACE,
+                        nextWorkRequest
+                    )
+                }
+            }
     }
 
     fun clearAllSchedules() {
@@ -216,5 +273,9 @@ class MedicineViewModel(application: Application) : AndroidViewModel(application
 
     fun getAllSchedulesForPatient(patientId: Int): Flow<List<MedicineSchedule>> {
         return dao.getAllSchedulesForPatient(patientId)
+    }
+
+    fun setSelectedMedicine(medicineId: Int) {
+        _selectedMedicineId.value = medicineId
     }
 } 
