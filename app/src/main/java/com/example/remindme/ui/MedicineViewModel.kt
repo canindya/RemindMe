@@ -26,6 +26,9 @@ class MedicineViewModel(application: Application) : AndroidViewModel(application
     private val _selectedPatientId = MutableStateFlow<Int?>(null)
     val selectedPatientId = _selectedPatientId.asStateFlow()
 
+    private val _selectedMedicineId = MutableStateFlow<Int?>(null)
+    val selectedMedicineId = _selectedMedicineId.asStateFlow()
+
     val medicines = _selectedPatientId.flatMapLatest { patientId ->
         if (patientId != null) {
             dao.getMedicinesForPatient(patientId)
@@ -74,6 +77,10 @@ class MedicineViewModel(application: Application) : AndroidViewModel(application
         _selectedPatientId.value = patientId
     }
 
+    fun setSelectedMedicine(id: Int) {
+        _selectedMedicineId.value = id
+    }
+
     fun addMedicine(name: String, illnessType: String) {
         viewModelScope.launch {
             _selectedPatientId.value?.let { patientId ->
@@ -86,7 +93,7 @@ class MedicineViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun addSchedule(medicineId: Int, dayOfWeek: DayOfWeek, time: String, dosage: String) {
+    fun addSchedule(medicineId: Int?, dayOfWeek: DayOfWeek, time: String, dosage: String) {
         viewModelScope.launch {
             val scheduleId = dao.insertSchedule(
                 MedicineSchedule(
@@ -97,13 +104,15 @@ class MedicineViewModel(application: Application) : AndroidViewModel(application
                 )
             ).toInt()
 
-            scheduleReminder(
-                medicineId,
-                LocalTime.parse(time),
-                dosage,
-                dayOfWeek,
-                scheduleId
-            )
+            if (medicineId != null) {
+                scheduleReminder(
+                    medicineId,
+                    LocalTime.parse(time),
+                    dosage,
+                    dayOfWeek,
+                    scheduleId
+                )
+            }
         }
     }
 

@@ -39,7 +39,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.example.remindme.R
 import java.time.DayOfWeek
@@ -49,13 +48,9 @@ import java.time.format.TextStyle
 import java.util.Locale
 import com.example.remindme.ui.components.ConfirmationDialog
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.IconButton
-import com.example.remindme.data.Medicine
 import com.example.remindme.data.MedicineSchedule
-import kotlinx.coroutines.launch
 import java.time.LocalDate
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.TopAppBar
@@ -302,50 +297,66 @@ fun TimingsTab(
                                 val currentDate = LocalDate.now()
                                 val currentDayOfWeek = currentDate.dayOfWeek
                                 val isTaken = if (selectedDay == currentDayOfWeek) {
-                                    // Only check taken status if we're viewing today's schedule
                                     takenMedicines.any { taken -> 
                                         taken.medicineId == medicine.id && 
                                         taken.scheduleId == schedule.id && 
                                         taken.date == currentDate
                                     }
                                 } else {
-                                    false  // If not today's schedule, always show as not taken
+                                    false
                                 }
                                 
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                Column(
+                                    horizontalAlignment = Alignment.End,
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.ic_medicine_alarm),
-                                        contentDescription = "Reminder set",
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                    
-                                    Text(
-                                        text = if (selectedDay == currentDayOfWeek) {
-                                            if (isTaken) "Taken" else "Due"
-                                        } else {
-                                            if (selectedDay.value < currentDayOfWeek.value) "Past" else "Upcoming"
-                                        },
-                                        color = when {
-                                            selectedDay != currentDayOfWeek -> MaterialTheme.colorScheme.onSurfaceVariant
-                                            isTaken -> Color.Green
-                                            else -> Color.Red
-                                        },
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        modifier = Modifier.padding(horizontal = 8.dp)
-                                    )
-                                }
-                                
-                                IconButton(
-                                    onClick = { scheduleToDelete = schedule }
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Delete,
-                                        contentDescription = "Delete schedule",
-                                        tint = Color.Red
-                                    )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.ic_medicine_alarm),
+                                            contentDescription = "Reminder set",
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                        
+                                        Text(
+                                            text = if (selectedDay == currentDayOfWeek) {
+                                                if (isTaken) "Taken" else "Due"
+                                            } else {
+                                                if (selectedDay.value < currentDayOfWeek.value) "Past" else "Upcoming"
+                                            },
+                                            color = when {
+                                                selectedDay != currentDayOfWeek -> MaterialTheme.colorScheme.onSurfaceVariant
+                                                isTaken -> Color.Green
+                                                else -> Color.Red
+                                            },
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+
+                                        IconButton(
+                                            onClick = { scheduleToDelete = schedule }
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Delete,
+                                                contentDescription = "Delete schedule",
+                                                tint = Color.Red
+                                            )
+                                        }
+                                    }
+
+                                    if (selectedDay == currentDayOfWeek && !isTaken) {
+                                        TextButton(
+                                            onClick = { viewModel.markMedicineTaken(medicine.id, schedule.id) },
+                                            modifier = Modifier.padding(end = 8.dp)
+                                        ) {
+                                            Text(
+                                                "Mark as Taken",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }

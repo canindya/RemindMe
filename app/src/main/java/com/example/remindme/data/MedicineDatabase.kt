@@ -7,8 +7,13 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
 @Database(
-    entities = [Medicine::class, MedicineSchedule::class, MedicineTaken::class, Patient::class],
-    version = 5
+    entities = [
+        Patient::class,
+        Medicine::class,
+        MedicineSchedule::class,
+        MedicineTaken::class
+    ],
+    version = 1
 )
 @TypeConverters(Converters::class)
 abstract class MedicineDatabase : RoomDatabase() {
@@ -25,9 +30,7 @@ abstract class MedicineDatabase : RoomDatabase() {
                     context.applicationContext,
                     MedicineDatabase::class.java,
                     "medicine_database"
-                )
-                    .fallbackToDestructiveMigration()
-                    .build()
+                ).build()
                 INSTANCE = instance
                 instance
             }

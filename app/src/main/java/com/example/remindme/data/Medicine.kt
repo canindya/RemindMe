@@ -16,7 +16,7 @@ data class Medicine(
 data class MedicineSchedule(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
-    val medicineId: Int,
+    val medicineId: Int?,
     val dayOfWeek: Int, // 1 (Monday) to 7 (Sunday)
     val time: String, // HH:mm format
     val dosage: String // "FULL", "HALF", "QUARTER"

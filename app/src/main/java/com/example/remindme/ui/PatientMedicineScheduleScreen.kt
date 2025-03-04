@@ -31,9 +31,9 @@ fun PatientMedicineScheduleScreen(
     val patientViewModel: PatientViewModel = viewModel()
     val context = LocalContext.current
     
-    val selectedPatientId by viewModel.selectedPatientId.collectAsState()
-    val patients by patientViewModel.patients.collectAsState()
-    val medicines by viewModel.medicines.collectAsState()
+    val selectedPatientId by viewModel.selectedPatientId.collectAsState(initial = null)
+    val patients by patientViewModel.patients.collectAsState(initial = emptyList())
+    val medicines by viewModel.medicines.collectAsState(initial = emptyList())
     var allSchedules by remember { mutableStateOf<List<MedicineSchedule>>(emptyList()) }
     var selectedDay by remember { mutableStateOf(LocalDate.now().dayOfWeek) }
     
@@ -42,7 +42,7 @@ fun PatientMedicineScheduleScreen(
     // Collect all schedules for the patient
     LaunchedEffect(selectedPatientId) {
         selectedPatientId?.let { patientId ->
-            viewModel.getAllSchedulesForPatient(patientId).collect { schedules ->
+            viewModel.getAllSchedulesForPatient(patientId).collect { schedules: List<MedicineSchedule> ->
                 allSchedules = schedules
             }
         }
@@ -50,14 +50,14 @@ fun PatientMedicineScheduleScreen(
 
     // Group schedules by time
     val schedulesGroupedByMedicine = allSchedules
-        .filter { it.dayOfWeek == selectedDay.value }  // Filter for selected day
+        .filter { schedule -> schedule.dayOfWeek == selectedDay.value }  // Filter for selected day
         .map { schedule ->
-            val medicine = medicines.find { it.id == schedule.medicineId }
+            val medicine = medicines.find { medicine -> medicine.id == schedule.medicineId }
             medicine?.let { ScheduleWithMedicine(schedule, it) }
         }
         .filterNotNull()
-        .groupBy { it.medicine.name }
-        .mapValues { (_, schedules) -> schedules.sortedBy { it.schedule.time } }
+        .groupBy { scheduleWithMedicine -> scheduleWithMedicine.medicine.name }
+        .mapValues { (_, schedules) -> schedules.sortedBy { scheduleWithMedicine -> scheduleWithMedicine.schedule.time } }
         .toSortedMap()
 
     Scaffold(
@@ -121,7 +121,7 @@ fun PatientMedicineScheduleScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                 }
 
-                items(schedulesGroupedByMedicine.toList()) { (medicineName, schedulesForMedicine) ->
+                items(schedulesGroupedByMedicine.toList()) { (medicineName: String, schedulesForMedicine: List<ScheduleWithMedicine>) ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()

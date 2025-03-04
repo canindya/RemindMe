@@ -1,19 +1,23 @@
 package com.example.remindme.ui
 
+import android.app.Activity
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -21,13 +25,30 @@ fun PatientScreen(
     onNavigateToAddPatient: () -> Unit,
     onPatientSelected: (Int) -> Unit
 ) {
+    val context = LocalContext.current
+    val activity = context as? Activity
     val viewModel: PatientViewModel = viewModel()
-    val patients by viewModel.patients.collectAsState()
+    val patients by viewModel.patients.collectAsState(initial = emptyList())
 
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Patients") },
+                actions = {
+                    IconButton(
+                        onClick = { activity?.finish() }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close app"
+                        )
+                    }
+                }
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(onClick = onNavigateToAddPatient) {
-                Icon(Icons.Default.Add, "Add Patient")
+                Icon(Icons.Default.Add, contentDescription = "Add Patient")
             }
         }
     ) { padding ->

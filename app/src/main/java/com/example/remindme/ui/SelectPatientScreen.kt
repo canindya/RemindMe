@@ -16,7 +16,7 @@ fun SelectPatientScreen(
     onPatientSelected: (Int) -> Unit
 ) {
     val viewModel: PatientViewModel = viewModel()
-    val patients by viewModel.patients.collectAsState()
+    val patients by viewModel.patients.collectAsState(initial = emptyList())
 
     Column(
         modifier = Modifier
