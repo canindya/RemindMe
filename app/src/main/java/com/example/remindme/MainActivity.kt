@@ -31,57 +31,75 @@ import com.example.remindme.ui.PatientScreen
 import com.example.remindme.ui.AddPatientScreen
 import com.example.remindme.ui.PatientMedicineScheduleScreen
 import com.example.remindme.ui.AddScheduleScreen
+import com.example.remindme.ui.AboutScreen
 import java.time.DayOfWeek
 
 @OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MainScreen() {
+    var currentScreen by remember { mutableStateOf("patients") }
+    val viewModel: MedicineViewModel = viewModel()
+
+    fun navigateToScreen(screen: String) {
+        currentScreen = screen
+    }
+
+    when (currentScreen) {
+        "patients" -> PatientScreen(
+            onNavigateToAddPatient = { currentScreen = "addPatient" },
+            onPatientSelected = { patientId ->
+                viewModel.setSelectedPatient(patientId)
+                currentScreen = "medicines"
+            },
+            onNavigateToScreen = { screen -> navigateToScreen(screen) }
+        )
+        "addPatient" -> AddPatientScreen(
+            onNavigateBack = { currentScreen = "patients" }
+        )
+        "medicines" -> MedicinesTab(
+            onNavigateBack = { currentScreen = "patients" },
+            onNavigateToTimings = { currentScreen = "timings" },
+            onNavigateToScheduleSummary = { currentScreen = "schedule_summary" },
+            onNavigateToAddSchedule = { medicineId ->
+                viewModel.setSelectedMedicine(medicineId)
+                currentScreen = "addSchedule"
+            }
+        )
+        "timings" -> TimingsTab(
+            onNavigateBack = { currentScreen = "medicines" }
+        )
+        "schedule_summary" -> PatientMedicineScheduleScreen(
+            onNavigateBack = { currentScreen = "medicines" }
+        )
+        "addSchedule" -> AddScheduleScreen(
+            onNavigateBack = { currentScreen = "medicines" },
+            viewModel = viewModel
+        )
+        "about" -> AboutScreen(
+            onNavigateBack = { currentScreen = "patients" }
+        )
+    }
+}
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // Request notification permission for Android 13+
+        enableEdgeToEdge()
+        
+        // Request notification permission for Android 13 and above
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != 
-                PackageManager.PERMISSION_GRANTED) {
+            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1)
             }
         }
-
-        enableEdgeToEdge()
+        
         setContent {
             RemindMeTheme {
-                var currentScreen by remember { mutableStateOf("patients") }
-                val viewModel: MedicineViewModel = viewModel()
-
-                when (currentScreen) {
-                    "patients" -> PatientScreen(
-                        onNavigateToAddPatient = { currentScreen = "addPatient" },
-                        onPatientSelected = { patientId ->
-                            viewModel.setSelectedPatient(patientId)
-                            currentScreen = "medicines"
-                        }
-                    )
-                    "addPatient" -> AddPatientScreen(
-                        onNavigateBack = { currentScreen = "patients" }
-                    )
-                    "medicines" -> MedicinesTab(
-                        onNavigateBack = { currentScreen = "patients" },
-                        onNavigateToTimings = { currentScreen = "timings" },
-                        onNavigateToScheduleSummary = { currentScreen = "schedule_summary" },
-                        onNavigateToAddSchedule = { medicineId ->
-                            viewModel.setSelectedMedicine(medicineId)
-                            currentScreen = "addSchedule"
-                        }
-                    )
-                    "timings" -> TimingsTab(
-                        onNavigateBack = { currentScreen = "medicines" }
-                    )
-                    "schedule_summary" -> PatientMedicineScheduleScreen(
-                        onNavigateBack = { currentScreen = "medicines" }
-                    )
-                    "addSchedule" -> AddScheduleScreen(
-                        onNavigateBack = { currentScreen = "medicines" },
-                        viewModel = viewModel
-                    )
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    MainScreen()
                 }
             }
         }

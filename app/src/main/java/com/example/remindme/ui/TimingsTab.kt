@@ -118,7 +118,7 @@ fun TimingsTab(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Timings") },
+                title = { Text("Medicine Schedule") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, "Go back")

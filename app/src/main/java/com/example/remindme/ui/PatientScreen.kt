@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -17,30 +18,46 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-
+import com.example.remindme.MainActivity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PatientScreen(
     onNavigateToAddPatient: () -> Unit,
-    onPatientSelected: (Int) -> Unit
+    onPatientSelected: (Int) -> Unit,
+    onNavigateToScreen: (String) -> Unit
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
     val viewModel: PatientViewModel = viewModel()
     val patients by viewModel.patients.collectAsState(initial = emptyList())
+    var showMenu by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Patients") },
                 actions = {
-                    IconButton(
-                        onClick = { activity?.finish() }
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                    }
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Close app"
+                        DropdownMenuItem(
+                            text = { Text("About") },
+                            onClick = { 
+                                showMenu = false
+                                onNavigateToScreen("about")
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Close App") },
+                            onClick = { 
+                                showMenu = false
+                                activity?.finish() 
+                            }
                         )
                     }
                 }

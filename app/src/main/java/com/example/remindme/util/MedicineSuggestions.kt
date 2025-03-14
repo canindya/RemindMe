@@ -1,6 +1,7 @@
 package com.example.remindme.util
 
 import com.example.remindme.data.MedicineSuggestion
+import android.util.Log
 
 object MedicineSuggestions {
     private val medicines = listOf(
@@ -189,9 +190,17 @@ object MedicineSuggestions {
 
     fun searchMedicines(query: String): List<MedicineSuggestion> {
         if (query.length < 2) return emptyList()
-        return medicines.filter {
-            it.name.contains(query, ignoreCase = true) ||
-            it.commonUses.contains(query, ignoreCase = true)
+        return try {
+            Log.d("MedicineSuggestions", "Entering searchMedicines()")
+            medicines.filter {
+                it.name.contains(query, ignoreCase = true) ||
+                it.commonUses.contains(query, ignoreCase = true)
+            }
+        } catch (e: Exception) {
+            Log.e("MedicineSuggestions", "Error occurred: ${e.message}", e)
+            emptyList()
+        } finally {
+            Log.d("MedicineSuggestions", "Exiting searchMedicines()")
         }
     }
 } 

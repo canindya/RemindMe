@@ -95,18 +95,19 @@ fun MedicinesTab(
                 title = { Text("Medicines") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, "Go back")
+                        Icon(Icons.Default.ArrowBack, "Medicine List")
                     }
                 },
                 actions = {
                     Button(onClick = onNavigateToTimings) {
-                        Text("Timings")
+                        Text("Schedule")
+
                     }
                     Button(
                         onClick = onNavigateToScheduleSummary,
-                        modifier = Modifier.padding(horizontal = 8.dp)
+                        modifier = Modifier.padding(horizontal = 4.dp)
                     ) {
-                        Text("View Summary")
+                        Text("Summary")
                     }
                 }
             )

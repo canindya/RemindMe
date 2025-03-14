@@ -63,7 +63,7 @@ fun PatientMedicineScheduleScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Medicine Schedule - ${selectedDay.getDisplayName(TextStyle.FULL, Locale.getDefault())}") },
+                title = { Text("Medicines for - ${selectedDay.getDisplayName(TextStyle.FULL, Locale.getDefault())}") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, "Go back")

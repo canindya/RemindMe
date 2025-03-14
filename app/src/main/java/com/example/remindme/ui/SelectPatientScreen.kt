@@ -8,6 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,7 +48,7 @@ fun SelectPatientScreen(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = patient.name,
-                                style = MaterialTheme.typography.titleMedium
+                                style = MaterialTheme.typography.titleMedium.copy(fontSize = 12.sp)
                             )
                             Text(
                                 text = "Age: ${patient.age} | Sex: ${patient.sex}",
