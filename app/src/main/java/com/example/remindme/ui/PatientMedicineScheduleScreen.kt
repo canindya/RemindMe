@@ -20,6 +20,7 @@ import java.util.Locale
 import com.example.remindme.data.Medicine
 import com.example.remindme.data.MedicineSchedule
 import com.example.remindme.data.Patient
+import com.example.remindme.data.ScheduleWithMedicine
 import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -171,11 +172,6 @@ fun PatientMedicineScheduleScreen(
         }
     }
 }
-
-private data class ScheduleWithMedicine(
-    val schedule: MedicineSchedule,
-    val medicine: Medicine
-)
 
 private fun shareDailySchedule(
     context: Context,

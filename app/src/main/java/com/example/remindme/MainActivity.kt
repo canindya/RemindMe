@@ -29,7 +29,7 @@ import com.example.remindme.ui.TimingsTab
 import com.example.remindme.ui.theme.RemindMeTheme
 import com.example.remindme.ui.PatientScreen
 import com.example.remindme.ui.AddPatientScreen
-import com.example.remindme.ui.PatientMedicineScheduleScreen
+import com.example.remindme.ui.ScheduleSummaryScreen
 import com.example.remindme.ui.AddScheduleScreen
 import com.example.remindme.ui.AboutScreen
 import java.time.DayOfWeek
@@ -68,7 +68,7 @@ fun MainScreen() {
         "timings" -> TimingsTab(
             onNavigateBack = { currentScreen = "medicines" }
         )
-        "schedule_summary" -> PatientMedicineScheduleScreen(
+        "schedule_summary" -> ScheduleSummaryScreen(
             onNavigateBack = { currentScreen = "medicines" }
         )
         "addSchedule" -> AddScheduleScreen(
