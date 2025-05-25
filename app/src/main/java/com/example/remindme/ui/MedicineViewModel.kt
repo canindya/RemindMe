@@ -145,17 +145,31 @@ class MedicineViewModel(application: Application) : AndroidViewModel(application
                 .setInputData(data)
                 .setInitialDelay(initialDelay.toMinutes(), TimeUnit.MINUTES)
                 .addTag("medicine_$medicineId")
+                .setBackoffCriteria(
+                    androidx.work.BackoffPolicy.LINEAR,
+                    androidx.work.WorkRequest.MIN_BACKOFF_MILLIS,
+                    TimeUnit.MILLISECONDS
+                )
                 .build()
         } else {
             PeriodicWorkRequestBuilder<MedicineReminderWorker>(1, TimeUnit.DAYS)
                 .setInputData(data)
                 .setInitialDelay(initialDelay.toMinutes(), TimeUnit.MINUTES)
                 .addTag("medicine_$medicineId")
+                .setBackoffCriteria(
+                    androidx.work.BackoffPolicy.LINEAR,
+                    androidx.work.WorkRequest.MIN_BACKOFF_MILLIS,
+                    TimeUnit.MILLISECONDS
+                )
                 .build()
         }
 
+        // Use a unique work name that includes the medicine ID, time, and day
+        val workName = "medicine_${medicineId}_${time}_${dayOfWeek?.value ?: "daily"}"
+        
+        // Enqueue the work with REPLACE policy to ensure we don't have duplicate reminders
         workManager.enqueueUniquePeriodicWork(
-            "medicine_${medicineId}_${time}_${dayOfWeek?.value ?: "daily"}",
+            workName,
             ExistingPeriodicWorkPolicy.REPLACE,
             workRequest
         )

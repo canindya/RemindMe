@@ -4,21 +4,17 @@ import android.app.Application
 import androidx.work.Configuration
 import androidx.work.WorkManager
 
-class RemindMeApp : Application() {
+class RemindMeApp : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
         
-        try {
-            // Try to get the WorkManager instance to check if it's initialized
-            WorkManager.getInstance(applicationContext)
-        } catch (e: IllegalStateException) {
-            // Initialize only if not already initialized
-            WorkManager.initialize(
-                this,
-                Configuration.Builder()
-                    .setMinimumLoggingLevel(android.util.Log.INFO)
-                    .build()
-            )
-        }
+        // Initialize WorkManager with custom configuration
+        WorkManager.getInstance(this)
     }
+
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder()
+            .setMinimumLoggingLevel(android.util.Log.INFO)
+            .setDefaultProcessName("com.example.remindme")
+            .build()
 } 
