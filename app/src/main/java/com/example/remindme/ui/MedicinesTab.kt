@@ -11,12 +11,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import com.example.remindme.ui.components.ConfirmationDialog
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import com.example.remindme.data.Medicine
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -49,7 +52,8 @@ fun MedicinesTab(
     onNavigateBack: () -> Unit,
     onNavigateToTimings: () -> Unit,
     onNavigateToScheduleSummary: () -> Unit,
-    onNavigateToAddSchedule: (Int) -> Unit
+    onNavigateToAddSchedule: (Int) -> Unit,
+    onNavigateToRefills: () -> Unit
 ) {
     val viewModel: MedicineViewModel = viewModel()
     val selectedPatientId by viewModel.selectedPatientId.collectAsState()
@@ -95,19 +99,18 @@ fun MedicinesTab(
                 title = { Text("Medicines") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, "Medicine List")
+                        Icon(Icons.Default.ArrowBack, "Go back")
                     }
                 },
                 actions = {
-                    Button(onClick = onNavigateToTimings) {
-                        Text("Schedule")
-
+                    IconButton(onClick = onNavigateToTimings) {
+                        Icon(Icons.Default.Schedule, "View Timings")
                     }
-                    Button(
-                        onClick = onNavigateToScheduleSummary,
-                        modifier = Modifier.padding(horizontal = 4.dp)
-                    ) {
-                        Text("Summary")
+                    IconButton(onClick = onNavigateToScheduleSummary) {
+                        Icon(Icons.Default.List, "View Schedule Summary")
+                    }
+                    IconButton(onClick = onNavigateToRefills) {
+                        Icon(Icons.Default.Refresh, "Medicine Refills")
                     }
                 }
             )

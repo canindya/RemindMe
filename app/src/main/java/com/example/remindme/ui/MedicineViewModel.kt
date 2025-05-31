@@ -17,6 +17,7 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import java.time.LocalDate
+import com.example.remindme.data.MedicineRefill
 
 class MedicineViewModel(application: Application) : AndroidViewModel(application) {
     private val database = MedicineDatabase.getDatabase(application)
@@ -50,6 +51,10 @@ class MedicineViewModel(application: Application) : AndroidViewModel(application
 
     private val _takenMedicines = MutableStateFlow<List<MedicineTaken>>(emptyList())
     val takenMedicines = _takenMedicines.asStateFlow()
+
+    // Medicine Refill Operations
+    private val _refills = MutableStateFlow<List<MedicineRefill>>(emptyList())
+    val refills = _refills.asStateFlow()
 
     init {
         _selectedDay.value = LocalDate.now().dayOfWeek
@@ -239,5 +244,43 @@ class MedicineViewModel(application: Application) : AndroidViewModel(application
 
     fun getAllSchedulesForPatient(patientId: Int): Flow<List<MedicineSchedule>> {
         return dao.getAllSchedulesForPatient(patientId)
+    }
+
+    fun addRefill(medicineId: Int, weeklyCount: Int, lastRefillDate: LocalDate, nextRefillDate: LocalDate, notes: String = "") {
+        viewModelScope.launch {
+            dao.insertRefill(
+                MedicineRefill(
+                    medicineId = medicineId,
+                    weeklyCount = weeklyCount,
+                    lastRefillDate = lastRefillDate,
+                    nextRefillDate = nextRefillDate,
+                    notes = notes
+                )
+            )
+        }
+    }
+
+    fun updateRefill(refill: MedicineRefill) {
+        viewModelScope.launch {
+            dao.updateRefill(refill)
+        }
+    }
+
+    fun deleteRefill(refill: MedicineRefill) {
+        viewModelScope.launch {
+            dao.deleteRefill(refill)
+        }
+    }
+
+    fun loadRefillsForPatient(patientId: Int) {
+        viewModelScope.launch {
+            dao.getRefillsForPatient(patientId).collect { refills ->
+                _refills.value = refills
+            }
+        }
+    }
+
+    fun getUpcomingRefills(patientId: Int): Flow<List<MedicineRefill>> {
+        return dao.getUpcomingRefills(patientId, LocalDate.now())
     }
 } 

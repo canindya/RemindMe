@@ -32,6 +32,7 @@ import com.example.remindme.ui.AddPatientScreen
 import com.example.remindme.ui.ScheduleSummaryScreen
 import com.example.remindme.ui.AddScheduleScreen
 import com.example.remindme.ui.AboutScreen
+import com.example.remindme.ui.MedicineRefillScreen
 import java.time.DayOfWeek
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -63,7 +64,8 @@ fun MainScreen() {
             onNavigateToAddSchedule = { medicineId ->
                 viewModel.setSelectedMedicine(medicineId)
                 currentScreen = "addSchedule"
-            }
+            },
+            onNavigateToRefills = { currentScreen = "refills" }
         )
         "timings" -> TimingsTab(
             onNavigateBack = { currentScreen = "medicines" }
@@ -74,6 +76,9 @@ fun MainScreen() {
         "addSchedule" -> AddScheduleScreen(
             onNavigateBack = { currentScreen = "medicines" },
             viewModel = viewModel
+        )
+        "refills" -> MedicineRefillScreen(
+            onNavigateBack = { currentScreen = "medicines" }
         )
         "about" -> AboutScreen(
             onNavigateBack = { currentScreen = "patients" }

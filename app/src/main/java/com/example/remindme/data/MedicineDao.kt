@@ -71,4 +71,31 @@ interface MedicineDao {
         WHERE m.patientId = :patientId
     """)
     fun getAllSchedulesForPatient(patientId: Int): Flow<List<MedicineSchedule>>
+
+    // Medicine Refill Operations
+    @Insert
+    suspend fun insertRefill(refill: MedicineRefill): Long
+
+    @Update
+    suspend fun updateRefill(refill: MedicineRefill)
+
+    @Delete
+    suspend fun deleteRefill(refill: MedicineRefill)
+
+    @Query("SELECT * FROM medicine_refills WHERE medicineId = :medicineId")
+    fun getRefillsForMedicine(medicineId: Int): Flow<List<MedicineRefill>>
+
+    @Query("""
+        SELECT mr.* FROM medicine_refills mr
+        INNER JOIN medicines m ON m.id = mr.medicineId
+        WHERE m.patientId = :patientId
+    """)
+    fun getRefillsForPatient(patientId: Int): Flow<List<MedicineRefill>>
+
+    @Query("""
+        SELECT mr.* FROM medicine_refills mr
+        INNER JOIN medicines m ON m.id = mr.medicineId
+        WHERE m.patientId = :patientId AND mr.nextRefillDate <= :date
+    """)
+    fun getUpcomingRefills(patientId: Int, date: LocalDate): Flow<List<MedicineRefill>>
 } 

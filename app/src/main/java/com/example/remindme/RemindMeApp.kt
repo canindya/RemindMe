@@ -9,6 +9,7 @@ class RemindMeApp : Application(), Configuration.Provider {
         super.onCreate()
         
         // Initialize WorkManager with custom configuration
+        val config = workManagerConfiguration
         WorkManager.getInstance(this)
     }
 

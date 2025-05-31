@@ -23,14 +23,6 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.RemindMe"
         tools:targetApi="31">
-        <provider
-            android:name="androidx.startup.InitializationProvider"
-            android:authorities="${applicationId}.androidx-startup"
-            android:exported="false">
-            <meta-data
-                android:name="androidx.work.WorkManagerInitializer"
-                android:value="androidx.startup" />
-        </provider>
         <activity
             android:name=".MainActivity"
             android:exported="true"
