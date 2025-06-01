@@ -98,4 +98,19 @@ interface MedicineDao {
         WHERE m.patientId = :patientId AND mr.nextRefillDate <= :date
     """)
     fun getUpcomingRefills(patientId: Int, date: LocalDate): Flow<List<MedicineRefill>>
+
+    @Query("""
+        WITH DuplicateRefills AS (
+            SELECT mr.medicineId, MIN(mr.id) as keepId
+            FROM medicine_refills mr
+            INNER JOIN medicines m ON m.id = mr.medicineId
+            WHERE m.patientId = :patientId
+            GROUP BY mr.medicineId
+            HAVING COUNT(*) > 1
+        )
+        DELETE FROM medicine_refills
+        WHERE medicineId IN (SELECT medicineId FROM DuplicateRefills)
+        AND id NOT IN (SELECT keepId FROM DuplicateRefills)
+    """)
+    suspend fun cleanupDuplicateRefills(patientId: Int)
 } 

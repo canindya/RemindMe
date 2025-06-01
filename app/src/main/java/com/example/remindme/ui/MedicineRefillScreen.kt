@@ -29,9 +29,32 @@ fun MedicineRefillScreen(
     var showAddRefillDialog by remember { mutableStateOf(false) }
     var selectedMedicineId by remember { mutableStateOf<Int?>(null) }
 
+    // Load medicines and calculate weekly counts when screen is opened
     LaunchedEffect(Unit) {
         viewModel.selectedPatientId.value?.let { patientId ->
+            // This will clean up duplicates in the database and load refills
             viewModel.loadRefillsForPatient(patientId)
+        }
+    }
+
+    // Process medicines after refills are loaded
+    LaunchedEffect(refills, medicines) {
+        viewModel.selectedPatientId.value?.let { patientId ->
+            medicines.forEach { medicine ->
+                val existingRefill = refills.find { it.medicineId == medicine.id }
+                if (existingRefill == null) {
+                    // Only add new refill if it doesn't exist
+                    viewModel.calculateWeeklyCount(medicine.id) { calculatedCount ->
+                        viewModel.addRefill(
+                            medicineId = medicine.id,
+                            weeklyCount = calculatedCount,
+                            lastRefillDate = LocalDate.now(),
+                            nextRefillDate = LocalDate.now().plusWeeks(1),
+                            notes = "Auto-generated based on schedule"
+                        )
+                    }
+                }
+            }
         }
     }
 
@@ -43,11 +66,6 @@ fun MedicineRefillScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, "Go back")
                     }
-                },
-                actions = {
-                    IconButton(onClick = { showAddRefillDialog = true }) {
-                        Icon(Icons.Default.Add, "Add Refill")
-                    }
                 }
             )
         }
@@ -58,7 +76,8 @@ fun MedicineRefillScreen(
                 .padding(padding)
                 .padding(16.dp)
         ) {
-            items(refills) { refill ->
+            // Use distinctBy to ensure no duplicates in the UI
+            items(refills.distinctBy { it.medicineId }) { refill ->
                 val medicine = medicines.find { it.id == refill.medicineId }
                 medicine?.let {
                     RefillCard(
@@ -120,7 +139,7 @@ fun RefillCard(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Weekly Count: ${refill.weeklyCount}",
+                text = "Weekly Count: ${refill.weeklyCount} tablets",
                 style = MaterialTheme.typography.bodyMedium
             )
             Text(

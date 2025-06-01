@@ -274,8 +274,37 @@ class MedicineViewModel(application: Application) : AndroidViewModel(application
 
     fun loadRefillsForPatient(patientId: Int) {
         viewModelScope.launch {
+            // First clean up any duplicates
+            dao.cleanupDuplicateRefills(patientId)
+            // Then load the cleaned refills
             dao.getRefillsForPatient(patientId).collect { refills ->
                 _refills.value = refills
+            }
+        }
+    }
+
+    fun cleanupDuplicateRefills(patientId: Int) {
+        viewModelScope.launch {
+            dao.cleanupDuplicateRefills(patientId)
+        }
+    }
+
+    fun calculateWeeklyCount(medicineId: Int, onComplete: (Int) -> Unit) {
+        viewModelScope.launch {
+            var totalWeeklyCount = 0.0
+            dao.getSchedulesForMedicine(medicineId).collect { schedules ->
+                schedules.forEach { schedule ->
+                    // Parse dosage to get tablet count
+                    val dosage = schedule.dosage.uppercase()
+                    val tabletCount = when {
+                        dosage.contains("FULL") -> 1.0
+                        dosage.contains("HALF") -> 0.5
+                        dosage.contains("QUARTER") -> 0.25
+                        else -> 1.0 // Default to 1 if unknown
+                    }
+                    totalWeeklyCount += tabletCount //* 7.0 Multiply by 7 for weekly count - bug commented
+                }
+                onComplete(totalWeeklyCount.toInt()) // Convert to Int after all calculations
             }
         }
     }

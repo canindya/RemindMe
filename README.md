@@ -19,6 +19,18 @@ RemindMe is a comprehensive Android application designed to help users manage th
 - View complete medicine history
 - Edit or delete medicine entries
 
+### Medicine Refill Management
+- Automatic tracking of medicine refills
+- Weekly tablet count calculation based on schedule
+- Smart refill reminders
+- Features include:
+  - Automatic weekly count calculation
+  - Next refill date tracking
+  - Refill due notifications
+  - Easy refill list management
+  - Duplicate prevention
+  - Manual refill deletion
+
 ### Schedule Management
 - Create detailed medication schedules
 - Set up multiple reminders per day
@@ -48,6 +60,8 @@ RemindMe is a comprehensive Android application designed to help users manage th
 - Efficient data access with DAOs
 - Real-time updates using Kotlin Flow
 - Data persistence across app restarts
+- Automatic duplicate prevention
+- Data integrity maintenance
 
 ## 🛠 Technical Features
 
@@ -58,6 +72,8 @@ RemindMe is a comprehensive Android application designed to help users manage th
 - Kotlin Coroutines for asynchronous operations
 - Material Design 3 components
 - Modern Android development practices
+- SQL-based duplicate prevention
+- Efficient state management
 
 ## 📱 Screenshots
 

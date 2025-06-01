@@ -110,7 +110,7 @@ fun MedicinesTab(
                         Icon(Icons.Default.List, "View Schedule Summary")
                     }
                     IconButton(onClick = onNavigateToRefills) {
-                        Icon(Icons.Default.Refresh, "Medicine Refills")
+                        Icon(Icons.Default.LocalPharmacy, "Medicine Refills")
                     }
                 }
             )
