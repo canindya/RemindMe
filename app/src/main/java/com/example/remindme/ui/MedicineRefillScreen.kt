@@ -27,12 +27,11 @@ fun MedicineRefillScreen(
     val medicines by viewModel.medicines.collectAsState()
     val refills by viewModel.refills.collectAsState()
     var showAddRefillDialog by remember { mutableStateOf(false) }
-    var selectedMedicineId by remember { mutableStateOf<Int?>(null) }
+    var showResetConfirmDialog by remember { mutableStateOf(false) }
 
     // Load medicines and calculate weekly counts when screen is opened
     LaunchedEffect(Unit) {
         viewModel.selectedPatientId.value?.let { patientId ->
-            // This will clean up duplicates in the database and load refills
             viewModel.loadRefillsForPatient(patientId)
         }
     }
@@ -43,7 +42,6 @@ fun MedicineRefillScreen(
             medicines.forEach { medicine ->
                 val existingRefill = refills.find { it.medicineId == medicine.id }
                 if (existingRefill == null) {
-                    // Only add new refill if it doesn't exist
                     viewModel.calculateWeeklyCount(medicine.id) { calculatedCount ->
                         viewModel.addRefill(
                             medicineId = medicine.id,
@@ -66,6 +64,11 @@ fun MedicineRefillScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, "Go back")
                     }
+                },
+                actions = {
+                    IconButton(onClick = { showResetConfirmDialog = true }) {
+                        Icon(Icons.Default.Refresh, "Reset all refill statuses")
+                    }
                 }
             )
         }
@@ -76,18 +79,43 @@ fun MedicineRefillScreen(
                 .padding(padding)
                 .padding(16.dp)
         ) {
-            // Use distinctBy to ensure no duplicates in the UI
             items(refills.distinctBy { it.medicineId }) { refill ->
                 val medicine = medicines.find { it.id == refill.medicineId }
                 medicine?.let {
                     RefillCard(
                         medicine = it,
                         refill = refill,
-                        onDelete = { viewModel.deleteRefill(refill) }
+                        onRefillDone = { viewModel.markRefillDone(refill) },
+                        viewModel = viewModel
                     )
                 }
             }
         }
+    }
+
+    if (showResetConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showResetConfirmDialog = false },
+            title = { Text("Reset All Refill Statuses") },
+            text = { Text("Are you sure you want to reset all refill statuses? This will clear all 'Refill Done' marks.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.selectedPatientId.value?.let { patientId ->
+                            viewModel.resetAllRefillStatuses(patientId)
+                        }
+                        showResetConfirmDialog = false
+                    }
+                ) {
+                    Text("Reset")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetConfirmDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     if (showAddRefillDialog) {
@@ -106,11 +134,12 @@ fun MedicineRefillScreen(
 fun RefillCard(
     medicine: com.example.remindme.data.Medicine,
     refill: MedicineRefill,
-    onDelete: () -> Unit
+    onRefillDone: () -> Unit,
+    viewModel: MedicineViewModel
 ) {
-    var showDeleteDialog by remember { mutableStateOf(false) }
     val daysUntilRefill = ChronoUnit.DAYS.between(LocalDate.now(), refill.nextRefillDate)
     val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy")
+    val showRefillDone = viewModel.shouldShowRefillDone(refill)
 
     Card(
         modifier = Modifier
@@ -131,8 +160,21 @@ fun RefillCard(
                     text = medicine.name,
                     style = MaterialTheme.typography.titleMedium
                 )
-                IconButton(onClick = { showDeleteDialog = true }) {
-                    Icon(Icons.Default.Delete, "Delete refill")
+                if (!showRefillDone) {
+                    Button(
+                        onClick = onRefillDone,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Text("Mark Refill Done")
+                    }
+                } else {
+                    Text(
+                        text = "Refill Done",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
             }
 
@@ -164,29 +206,6 @@ fun RefillCard(
                 )
             }
         }
-    }
-
-    if (showDeleteDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete Refill") },
-            text = { Text("Are you sure you want to delete this refill record?") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onDelete()
-                        showDeleteDialog = false
-                    }
-                ) {
-                    Text("Delete")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
     }
 }
 

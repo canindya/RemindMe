@@ -25,5 +25,7 @@ data class MedicineRefill(
     val weeklyCount: Int, // Total count required per week
     val lastRefillDate: LocalDate,
     val nextRefillDate: LocalDate,
-    val notes: String = ""
+    val notes: String = "",
+    val refillDone: Boolean = false,
+    val refillDoneDate: LocalDate? = null
 ) 

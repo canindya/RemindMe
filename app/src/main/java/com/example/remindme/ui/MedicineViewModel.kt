@@ -18,6 +18,8 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import java.time.LocalDate
 import com.example.remindme.data.MedicineRefill
+import kotlin.math.ceil
+import java.time.temporal.ChronoUnit
 
 class MedicineViewModel(application: Application) : AndroidViewModel(application) {
     private val database = MedicineDatabase.getDatabase(application)
@@ -304,12 +306,53 @@ class MedicineViewModel(application: Application) : AndroidViewModel(application
                     }
                     totalWeeklyCount += tabletCount //* 7.0 Multiply by 7 for weekly count - bug commented
                 }
-                onComplete(totalWeeklyCount.toInt()) // Convert to Int after all calculations
+                onComplete(ceil(totalWeeklyCount).toInt()) // Convert to Int after all calculations
             }
         }
     }
 
     fun getUpcomingRefills(patientId: Int): Flow<List<MedicineRefill>> {
         return dao.getUpcomingRefills(patientId, LocalDate.now())
+    }
+
+    fun markRefillDone(refill: MedicineRefill) {
+        viewModelScope.launch {
+            val updatedRefill = refill.copy(
+                refillDone = true,
+                refillDoneDate = LocalDate.now()
+            )
+            dao.updateRefill(updatedRefill)
+        }
+    }
+
+    fun resetRefillStatus(refill: MedicineRefill) {
+        viewModelScope.launch {
+            val updatedRefill = refill.copy(
+                refillDone = false,
+                refillDoneDate = null
+            )
+            dao.updateRefill(updatedRefill)
+        }
+    }
+
+    fun resetAllRefillStatuses(patientId: Int) {
+        viewModelScope.launch {
+            // Get all refills for the patient
+            val patientRefills = dao.getRefillsForPatientSync(patientId)
+            // Reset each refill
+            patientRefills.forEach { refill ->
+                val updatedRefill = refill.copy(
+                    refillDone = false,
+                    refillDoneDate = null
+                )
+                dao.updateRefill(updatedRefill)
+            }
+        }
+    }
+
+    fun shouldShowRefillDone(refill: MedicineRefill): Boolean {
+        if (!refill.refillDone || refill.refillDoneDate == null) return false
+        val daysSinceRefillDone = ChronoUnit.DAYS.between(refill.refillDoneDate, LocalDate.now())
+        return daysSinceRefillDone <= 7
     }
 } 

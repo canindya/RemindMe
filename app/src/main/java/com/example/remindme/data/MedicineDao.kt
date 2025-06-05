@@ -95,6 +95,13 @@ interface MedicineDao {
     @Query("""
         SELECT mr.* FROM medicine_refills mr
         INNER JOIN medicines m ON m.id = mr.medicineId
+        WHERE m.patientId = :patientId
+    """)
+    suspend fun getRefillsForPatientSync(patientId: Int): List<MedicineRefill>
+
+    @Query("""
+        SELECT mr.* FROM medicine_refills mr
+        INNER JOIN medicines m ON m.id = mr.medicineId
         WHERE m.patientId = :patientId AND mr.nextRefillDate <= :date
     """)
     fun getUpcomingRefills(patientId: Int, date: LocalDate): Flow<List<MedicineRefill>>

@@ -16,7 +16,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         MedicineTaken::class,
         MedicineRefill::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -48,6 +48,14 @@ abstract class MedicineDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Add new columns to medicine_refills table
+                database.execSQL("ALTER TABLE `medicine_refills` ADD COLUMN `refillDone` INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE `medicine_refills` ADD COLUMN `refillDoneDate` TEXT")
+            }
+        }
+
         fun getDatabase(context: Context): MedicineDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -55,7 +63,7 @@ abstract class MedicineDatabase : RoomDatabase() {
                     MedicineDatabase::class.java,
                     "medicine_database"
                 )
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .build()
                 INSTANCE = instance
                 instance
