@@ -8,6 +8,7 @@ RemindMe is a comprehensive Android application designed to help users manage th
 - Create and manage multiple patient profiles
 - Store patient details including name, age, and sex
 - Easy switching between different patient profiles
+- Refill Counter for each patient for weekly refills
 
 ### Medicine Management
 - Add and track multiple medicines
@@ -47,6 +48,11 @@ RemindMe is a comprehensive Android application designed to help users manage th
 - Customizable notification settings
 - Persistent notifications for important reminders
 - Background service for reliable delivery
+
+### Refill Counter 
+- Refill counter allows one view weekly refill count of medicines
+- Ability to mark refill as complete
+- Reset the counter at any time to start afresh
 
 ### User Interface
 - Modern Material Design 3 implementation
